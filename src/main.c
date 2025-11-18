@@ -101,6 +101,99 @@ void free_tree(TreeNode *node) {
 
 
 
+// 디렉터리 크기 계산
+long long calculate_dir_size(TreeNode *node) {
+    if (!node->is_dir) {
+       return node->size;
+    }
+    long long total = 0;
+    for (int i = 0; i < node->child_count; i++) {
+        total = total + calculate_dir_size(node->children[i]);
+    }
+    node->size = total;
+    return total;
+}
+
+// 디렉터리 스캔
+void scan_directory(const char *dir_path, TreeNode *parent, int current_depth, int max_depth) {
+    if (max_depth != -1 && current_depth >= max_depth) {
+        return;
+    }
+
+    DIR *dir = opendir(dir_path);
+    if (!dir) {
+        return;
+    }
+
+    struct dirent *entry;
+    while ((entry = readdir(dir)) != NULL) {
+        if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0) {
+            continue;
+        }
+        
+        char full_path[4096]'
+        snprintf(full_path, sizeof(full_path), "%s/%s", dir_path, entry->d_name);
+
+        struct stat st;
+        if (stat(full_path, &st) == -1) {
+            continue;
+        }
+
+        bool is_directory = S_ISDIR(st.st_mode);
+        long long size = is_directory ? 0 : st.st_size;
+
+        TreeNode *child = create_node(entry->d_name, full_path, size, is_directory);
+        add_child(parent, child);
+
+        if (is_directory) {
+            scan_directory(full_path, child, current_depth + 1, max_depth);    
+        }
+    }
+    closedir(dir);
+}
+
+// 크기 포맷팅
+void format_size(long long bytes, char * buffer, size_t buffer_size) {
+     const char *units[] = {"B", "KB", "MB", "GB", "TB"};
+     int unit_index = 0;
+     double size = (double)bytes;
+
+     while (size >= 1024.0 && unit_index < 4) {
+         size = size / 1024.0;
+         unit_index++;
+     }
+
+     if (unit_index == 0) {
+         snprintf(buffer, buffer_size, "%lld B", bytes);
+     } else {
+         snprintf(buffer, buffer_size, "%.1f %s", size, units[unit_index]);
+     }
+}
+
+// 트리 출력
+void print_tree(TreeNode *node, int depth, const char *prefix, bool is_last, long long min_size) {
+    if (!node) return;
+    if (node->size < min_size) return;
+
+    printf("%s", prefix);
+    printf("%s", is_last ? "└── " : "├── ");
+
+    char size_str[64];
+    format_size(node->size, size_str, sizeof(size_str));
+
+    printf("%s (%s)%s\n", node->name, size_str, node->is_dir ? "[DIR]" : "");
+
+    if (node->child_count == 0) return;
+
+    char new_prefix[1024];
+    snprintf(new_prefix, sizeof(new_prefix), "%s%s", prefix, is_last ? "    " : "│   ");
+
+    for (int i = 0; i < node->child_count; i++) {
+        bool child_is_last = (i == node->child_count - 1);
+        print_tree(node->children[i], depth + 1, new_prefix, child_is_last, min_size);
+    }
+}
+
 
 // valid path
 bool is_valid_path(const char *path) {
@@ -162,9 +255,24 @@ int main(int argc, char *argv[]) {
     parse_args(argc, argv, &options);
 
     printf("Path: %s\n", options.path);
-    printf("Valid: %s\n", is_valid_path(options.path) ? "Yes" : "No");
-    printf("Max depth: %d\n", options.max_depth);
-    printf("Min size: %lld\n", options.min_size);
+    //printf("Valid: %s\n", is_valid_path(options.path) ? "Yes" : "No");
+    if (!is_valid_path(optional.path)) {
+        printf("오류: 경로를 찾을 수 없습니다: %s\n", options.path);
+        return 1;
+    }
+    //printf("Max depth: %d\n", options.max_depth);
+    printf("경로 분석 중: %s\n", options.path);
+    if (options.max_depth != -1) {
+        printf("최대 깊이: %d\n", options.max_depth);
+    }
+    //printf("Min size: %lld\n", options.min_size);
+    if (options.min_size > 0) {
+        char size_str[64];
+        format_size(options.min_size, size_str, sizeof(size_str));
+        printf("최소 크기: %s\n", size_str);
+    }
+    printf("\n");
+
     printf("Top: %d\n", options.top);
     printf("Reverse: %s\n", options.reverse ? "true":"false");
     printf("Percent: %s\n", options.show_percent ? "true" : "false");
