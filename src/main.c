@@ -26,9 +26,12 @@ long long str_to_num(const char *str) {
     long long result = 0;
     int i = 0;
     while (str[i] != '\0') {
-      if (str[i] >= '0' && str[i] =< '9') {
+      if (str[i] >= '0' && str[i] <= '9') {
+      result = result * 10 + (str[i] - '0');
       }
+      i++;
     }
+    return result;
 }
 
 void parse_args(int argc, char *argv[], Options *options) {
@@ -44,7 +47,7 @@ void parse_args(int argc, char *argv[], Options *options) {
         if (strncmp(argv[i], "--max-depth=", 12) == 0) {
             options->max_depth = atoi(argv[i] + 12);
         } else if (strncmp(argv[i], "--min-size=", 11) == 0) {
-            options->min_size = (argv[i]) + 11;
+            options->min_size = str_to_num(argv[i] + 11);
         } else if (strncmp(argv[i], "--top=", 6) == 0) {
             options->top = atoi(argv[i] + 6);
         } else if (strcmp(argv[i], "--reverse") == 0) {
