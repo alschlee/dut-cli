@@ -5,6 +5,17 @@
 #include "utils.h"
 # include <unistd.h>
 
+// Tree 구조 정의
+typedef struct TreeNode {
+    char *name;
+    char *path;
+    long long size;
+    bool is_dir;
+    struct TreeNode **children;
+    int child_count;
+    int capacity;
+} TreeNode;
+
 typedef struct {
     char *path;
     int max_depth;
@@ -14,6 +25,82 @@ typedef struct {
     bool show_percent;
     bool show_summary;
 } Options;
+
+
+// 노드 생성
+TreeNode* create_node(const char *name, const char *path, long long size, bool is_dir) {
+    TreeNode *node = malloc(sizeof(TreeNode));
+    if (!node) return NULL;
+
+    node->name = strdup(name);
+    node->path = strdup(path);
+    node->size = size;
+    node->is_dir = is_dir;
+    node->children = NULL;
+    node->child_count = 0;
+    node->capacity = 0;
+
+    return node;
+}
+
+// 자식 추가
+void add_child(TreeNode *parent, TreeNode *child) {
+    if (parent->child_count == parent->capacity) {
+       int new_cap = (parent->capacity == 0) ? 4 : parent->capacity *2;
+
+       TreeNode **tmp = realloc(parent->children, new_cap * sizeof(TreeNode*));
+       if (!tmp) return;
+
+       parent->children = tmp;
+       parent->capacity = new_cap;
+   }
+
+   parent->children[parent->child_count] = child;
+   parent->child_count++;
+}
+
+// 정렬용 비교
+static int cmp_nodes(const void *a, const void *b) {
+   TreeNode *A = *(TreeNode**)a;
+   TreeNode *B = *(TreeNode**)b;
+
+   if (A->size > B->size) return -1;
+   if (A->size < B->size) return 1;
+   
+   return strcmp(A->name, B->name);
+}
+
+// reverse 정렬
+static int cmp_nodes_rev(const void *a, const void *b) {
+   return cmp_nodes(b, a);
+}
+
+// 트리 정렬
+void sort_tree(TreeNode *node, bool reverse) {
+   if (node->child_count > 0) {
+       qsort(node->children, node->child_count, sizeof(TreeNode*), reverse ? cmp_nodes_rev : cmp_nodes);
+   }
+   
+   for (int i = 0; i < node->child_count; i++) {
+       sort_tree(node->children[i], reverse);
+   }
+}
+
+void free_tree(TreeNode *node) {
+    if (!node) return;
+
+    for (int i = 0; i < node->child_count; i++) {
+         free_tree(node->children[i]);
+    }
+    
+    free(node->children);
+    free(node->name);
+    free(node->path);
+    free(node);
+}
+
+
+
 
 // valid path
 bool is_valid_path(const char *path) {
@@ -83,5 +170,36 @@ int main(int argc, char *argv[]) {
     printf("Percent: %s\n", options.show_percent ? "true" : "false");
     printf("Summary: %s\n", options.show_summary ? "true" : "false");
 
-    return 0;
+    // 예시 트리 생성
+    TreeNode *root = create_node("root", options.path, 100, true);
+    add_child(root, create_node("a.txt", "/a.txt", 50, false));
+    add_child(root, create_node("b.txt", "/b.txt", 20, false));
+    add_child(root, create_node("dir", "/dir", 200, true));
+
+
+
+    printf("--트리 확인 테스트--\n");
+    printf("Root: %s (size=%lld, is_dir=%d, children=%d)\n", root->name, root->size, root->is_dir, root->child_count);
+   
+   for (int i = 0; i < root->child_count; i++) {
+       TreeNode *child = root->children[i];
+       printf("Child %d: %s (size=%lld, is_dir=%d)\n", i, child->name, child->size, child->is_dir);
+   }
+   
+  printf("--정렬 전 순서--\n");
+  for (int i = 0; i < root->child_count; i++) {
+      printf("%d. %s - %lld bbytes\n", i+1, root->children[i]->name, root->children[i]->size);
+  }
+
+  sort_tree(root, options.reverse);
+
+  printf("\n--정렬 후 순서--\n");
+  for (int i = 0; i < root->child_count; i++) {
+      printf("%d. %s - %lld bytes\n", i+1, root->children[i]->name, root->children[i]->size);
+  }
+  
+  free_tree(root);
+
+  return 0;
 }
+
