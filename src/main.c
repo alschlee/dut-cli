@@ -177,15 +177,19 @@ void format_size(long long bytes, char * buffer, size_t buffer_size) {
 void print_tree(TreeNode *node, int depth, const char *prefix, bool is_last, long long min_size) {
     if (!node) return;
     if (node->size < min_size) return;
-
-    printf("%s", prefix);
-    printf("%s", is_last ? "└── " : "├── ");
-
+ 
     char size_str[64];
     format_size(node->size, size_str, sizeof(size_str));
+   
+    if (depth == 0) {
+        printf("[%s] %s%s%s\n", size_str, node->is_dir ? "" : "", node->name, node->is_dir ? "/" : "");
+    } else {
+        printf("%s", prefix);
+        printf("%s", is_last ? "└── " : "├── ");
 
-    printf("%s (%s)%s\n", node->name, size_str, node->is_dir ? "[DIR]" : "");
-
+        printf("[%s] %s%s%s\n", size_str, "", node->name, node->is_dir ? "/" : "");
+    }
+ 
     if (node->child_count == 0) return;
 
     char new_prefix[1024];
@@ -258,16 +262,17 @@ int main(int argc, char *argv[]) {
     parse_args(argc, argv, &options);
 
     printf("Path: %s\n", options.path);
-    //printf("Valid: %s\n", is_valid_path(options.path) ? "Yes" : "No");
+    
     if (!is_valid_path(options.path)) {
         printf("오류: 경로를 찾을 수 없습니다: %s\n", options.path);
         return 1;
     }
+
     //printf("Max depth: %d\n", options.max_depth);
-    printf("경로 분석 중: %s\n", options.path);
     if (options.max_depth != -1) {
         printf("최대 깊이: %d\n", options.max_depth);
     }
+
     //printf("Min size: %lld\n", options.min_size);
     if (options.min_size > 0) {
         char size_str[64];
@@ -281,35 +286,6 @@ int main(int argc, char *argv[]) {
     printf("Percent: %s\n", options.show_percent ? "true" : "false");
     printf("Summary: %s\n", options.show_summary ? "true" : "false");
 
-    // 예시 트리 생성
-    //TreeNode *root = create_node("root", options.path, 100, true);
-    //add_child(root, create_node("a.txt", "/a.txt", 50, false));
-    //add_child(root, create_node("b.txt", "/b.txt", 20, false));
-    //add_child(root, create_node("dir", "/dir", 200, true));
-
-
-
-    //printf("--트리 확인 테스트--\n");
-    //printf("Root: %s (size=%lld, is_dir=%d, children=%d)\n", root->name, root->size, root->is_dir, root->child_count);
-   
-   //for (int i = 0; i < root->child_count; i++) {
-       //TreeNode *child = root->children[i];
-       //printf("Child %d: %s (size=%lld, is_dir=%d)\n", i, child->name, child->size, child->is_dir);
-   //}
-   
-  //printf("--정렬 전 순서--\n");
-  //for (int i = 0; i < root->child_count; i++) {
-      //printf("%d. %s - %lld bbytes\n", i+1, root->children[i]->name, root->children[i]->size);
-  //}
-
-  //sort_tree(root, options.reverse);
-
-  //printf("\n--정렬 후 순서--\n");
-  //for (int i = 0; i < root->child_count; i++) {
-      //printf("%d. %s - %lld bytes\n", i+1, root->children[i]->name, root->children[i]->size);
-  //}
-
-  
   
   char *dir_name = strrchr(options.path, '/');
   if (dir_name) {
