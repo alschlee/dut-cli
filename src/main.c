@@ -3,7 +3,10 @@
 #include <string.h>
 //#include "args.h"
 #include "utils.h"
-# include <unistd.h>
+#include <unistd.h>
+#include <stdbool.h>
+#include <dirent.h>
+#include <sys/stat.h>
 
 // Tree 구조 정의
 typedef struct TreeNode {
@@ -131,7 +134,7 @@ void scan_directory(const char *dir_path, TreeNode *parent, int current_depth, i
             continue;
         }
         
-        char full_path[4096]'
+        char full_path[4096];
         snprintf(full_path, sizeof(full_path), "%s/%s", dir_path, entry->d_name);
 
         struct stat st;
@@ -256,7 +259,7 @@ int main(int argc, char *argv[]) {
 
     printf("Path: %s\n", options.path);
     //printf("Valid: %s\n", is_valid_path(options.path) ? "Yes" : "No");
-    if (!is_valid_path(optional.path)) {
+    if (!is_valid_path(options.path)) {
         printf("오류: 경로를 찾을 수 없습니다: %s\n", options.path);
         return 1;
     }
@@ -279,33 +282,47 @@ int main(int argc, char *argv[]) {
     printf("Summary: %s\n", options.show_summary ? "true" : "false");
 
     // 예시 트리 생성
-    TreeNode *root = create_node("root", options.path, 100, true);
-    add_child(root, create_node("a.txt", "/a.txt", 50, false));
-    add_child(root, create_node("b.txt", "/b.txt", 20, false));
-    add_child(root, create_node("dir", "/dir", 200, true));
+    //TreeNode *root = create_node("root", options.path, 100, true);
+    //add_child(root, create_node("a.txt", "/a.txt", 50, false));
+    //add_child(root, create_node("b.txt", "/b.txt", 20, false));
+    //add_child(root, create_node("dir", "/dir", 200, true));
 
 
 
-    printf("--트리 확인 테스트--\n");
-    printf("Root: %s (size=%lld, is_dir=%d, children=%d)\n", root->name, root->size, root->is_dir, root->child_count);
+    //printf("--트리 확인 테스트--\n");
+    //printf("Root: %s (size=%lld, is_dir=%d, children=%d)\n", root->name, root->size, root->is_dir, root->child_count);
    
-   for (int i = 0; i < root->child_count; i++) {
-       TreeNode *child = root->children[i];
-       printf("Child %d: %s (size=%lld, is_dir=%d)\n", i, child->name, child->size, child->is_dir);
-   }
+   //for (int i = 0; i < root->child_count; i++) {
+       //TreeNode *child = root->children[i];
+       //printf("Child %d: %s (size=%lld, is_dir=%d)\n", i, child->name, child->size, child->is_dir);
+   //}
    
-  printf("--정렬 전 순서--\n");
-  for (int i = 0; i < root->child_count; i++) {
-      printf("%d. %s - %lld bbytes\n", i+1, root->children[i]->name, root->children[i]->size);
-  }
+  //printf("--정렬 전 순서--\n");
+  //for (int i = 0; i < root->child_count; i++) {
+      //printf("%d. %s - %lld bbytes\n", i+1, root->children[i]->name, root->children[i]->size);
+  //}
 
-  sort_tree(root, options.reverse);
+  //sort_tree(root, options.reverse);
 
-  printf("\n--정렬 후 순서--\n");
-  for (int i = 0; i < root->child_count; i++) {
-      printf("%d. %s - %lld bytes\n", i+1, root->children[i]->name, root->children[i]->size);
-  }
+  //printf("\n--정렬 후 순서--\n");
+  //for (int i = 0; i < root->child_count; i++) {
+      //printf("%d. %s - %lld bytes\n", i+1, root->children[i]->name, root->children[i]->size);
+  //}
+
   
+  
+  char *dir_name = strrchr(options.path, '/');
+  if (dir_name) {
+      dir_name++; 
+  } else {
+      dir_name = options.path;
+  }
+
+  TreeNode *root = create_node(dir_name, options.path, 0, true);
+  scan_directory(options.path, root, 0, options.max_depth);
+  calculate_dir_size(root);
+  sort_tree(root, options.reverse);
+  print_tree(root, 0, "", true, options.min_size);
   free_tree(root);
 
   return 0;
