@@ -29,6 +29,10 @@ typedef struct {
     bool show_summary;
 } Options;
 
+// 통계용
+// int total_dirs = 0;
+// int toal_files = 0;
+
 
 // 노드 생성
 TreeNode* create_node(const char *name, const char *path, long long size, bool is_dir) {
@@ -42,8 +46,15 @@ TreeNode* create_node(const char *name, const char *path, long long size, bool i
     node->children = NULL;
     node->child_count = 0;
     node->capacity = 0;
+    
+    // if (is_dir) {
+       // total_dirs++;
+    // } else {
+       // total_files+;
+    // }
 
     return node;
+
 }
 
 // 자식 추가
@@ -119,6 +130,8 @@ long long calculate_dir_size(TreeNode *node) {
 
 // 디렉터리 스캔
 void scan_directory(const char *dir_path, TreeNode *parent, int current_depth, int max_depth) {
+    printf("dir_path: %s\n", dir_path);
+
     if (max_depth != -1 && current_depth >= max_depth) {
         return;
     }
@@ -156,48 +169,56 @@ void scan_directory(const char *dir_path, TreeNode *parent, int current_depth, i
 }
 
 // 크기 포맷팅
-void format_size(long long bytes, char * buffer, size_t buffer_size) {
-     const char *units[] = {"B", "KB", "MB", "GB", "TB"};
-     int unit_index = 0;
-     double size = (double)bytes;
+void format_size(long long bytes, char *buf, size_t bufsize)
+{
+    double v = bytes;
+    const char *unit = "B";
 
-     while (size >= 1024.0 && unit_index < 4) {
-         size = size / 1024.0;
-         unit_index++;
-     }
+    if (bytes >= 1024) {
+        v = bytes / 1024.0;
+        unit = "KB";
+    }
+    if (bytes >= 1024 * 1024) {
+        v = bytes / (1024.0 * 1024);
+        unit = "MB";
+    }
+    if (bytes >= 1024LL * 1024 * 1024) {
+        v = bytes / (1024.0 * 1024 * 1024);
+        unit = "GB";
+    }
 
-     if (unit_index == 0) {
-         snprintf(buffer, buffer_size, "%lld B", bytes);
-     } else {
-         snprintf(buffer, buffer_size, "%.1f %s", size, units[unit_index]);
-     }
+    snprintf(buf, bufsize, "%.1f %s", v, unit);
 }
 
 // 트리 출력
-void print_tree(TreeNode *node, int depth, const char *prefix, bool is_last, long long min_size) {
+void print_tree(TreeNode *node, int depth, const char *prefix, bool is_last, long long min_size)
+{
     if (!node) return;
     if (node->size < min_size) return;
- 
-    char size_str[64];
-    format_size(node->size, size_str, sizeof(size_str));
-   
-    if (depth == 0) {
-        printf("[%s] %s%s%s\n", size_str, node->is_dir ? "" : "", node->name, node->is_dir ? "/" : "");
-    } else {
-        printf("%s", prefix);
-        printf("%s", is_last ? "└── " : "├── ");
 
-        printf("[%s] %s%s%s\n", size_str, "", node->name, node->is_dir ? "/" : "");
+    char s[64];
+    format_size(node->size, s, sizeof(s));
+
+    if (depth == 0) {
+        printf("[%s] %s%s\n", s, node->name, node->is_dir ? "/" : "");
+    } else {
+        printf("%s%s[%s] %s%s\n",
+               prefix,
+               is_last ? "└── " : "├── ",
+               s,
+               node->name,
+               node->is_dir ? "/" : "");
     }
- 
+
     if (node->child_count == 0) return;
 
-    char new_prefix[1024];
-    snprintf(new_prefix, sizeof(new_prefix), "%s%s", prefix, is_last ? "    " : "│   ");
+    char next[1024];
+    strcpy(next, prefix);
+    strcat(next, is_last ? "    " : "│   ");
 
     for (int i = 0; i < node->child_count; i++) {
-        bool child_is_last = (i == node->child_count - 1);
-        print_tree(node->children[i], depth + 1, new_prefix, child_is_last, min_size);
+        int last = (i == node->child_count - 1);
+        print_tree(node->children[i], depth + 1, next, last, min_size);
     }
 }
 
