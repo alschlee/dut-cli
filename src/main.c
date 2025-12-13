@@ -114,13 +114,17 @@ void scan(char *path, Node *parent, int depth, int max) {
     if (d==NULL) return;
 
     struct dirent *item;  // dirent -> d_name(파일 이름), d_type(파일 타입)
+    int skipped=0;
 
     // 디렉터리 내 모든 항목 읽기
     while ((item = readdir(d)) != NULL) {
         if (strcmp(item->d_name, ".") == 0 || strcmp(item->d_name, "..") == 0)  // readdir
             continue;
 
-        if (parent->child_count >= 100) break;
+        if (parent->child_count >= 100){
+            skipped++;
+            continue;
+        }
 
         // 전체 경로 생성
         char p[1024];
@@ -144,6 +148,11 @@ void scan(char *path, Node *parent, int depth, int max) {
            scan(p, child, depth + 1, max);
         }
     }
+
+    if (skipped > 0) {
+        printf("[100개 제한 초과] 생략된 항목: %s (%d개)\n", path, skipped);
+    }
+
     closedir(d);
 }
 
