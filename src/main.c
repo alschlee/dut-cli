@@ -40,6 +40,9 @@ void add(Node *parent, Node *child) {
     if (index<100){  // 최대 100개까지만 추가 가능
        parent->children[index] = child;
        parent->child_count = index+1;
+   } else {
+       free(child->children);
+       free(child);
    }
 }
 
@@ -116,6 +119,8 @@ void scan(char *path, Node *parent, int depth, int max) {
     while ((item = readdir(d)) != NULL) {
         if (strcmp(item->d_name, ".") == 0 || strcmp(item->d_name, "..") == 0)  // readdir
             continue;
+
+        if (parent->child_count >= 100) break;
 
         // 전체 경로 생성
         char p[1024];
